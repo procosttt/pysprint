@@ -93,13 +93,31 @@ describe('PythonRunner', () => {
     const init = workers[0]?.posted[0]
     workers[0]?.emit({ type: 'ready', requestId: init && init.type === 'init' ? init.requestId : 'x' })
 
-    const started = runner.run('print(2 + 2)', '12\n8\n10')
+    const started = runner.run('print(2 + 2)', '')
     expect(started).toBe(true)
 
     const run = latestRun(workers[0]!)
     expect(run.code).toBe('print(2 + 2)')
-    expect(run.stdin).toBe('12\n8\n10')
+    expect(run.stdin).toBe('')
     expect(run.requestId).not.toBe(init && init.type === 'init' ? init.requestId : run.requestId)
+    runner.dispose()
+  })
+
+  it('forwards exact user stdin including multiline text', () => {
+    const workers: FakeWorker[] = []
+    const runner = new PythonRunner({
+      createWorker: () => {
+        const worker = createFakeWorker()
+        workers.push(worker)
+        return worker.port
+      },
+    })
+    workers[0]!.emit({ type: 'ready', requestId: workers[0]!.posted[0]!.requestId })
+
+    const stdin = '5\n7'
+    expect(runner.run('a = int(input())\nb = int(input())\nprint(a + b)', stdin)).toBe(true)
+    expect(latestRun(workers[0]!).stdin).toBe('5\n7')
+    expect(latestRun(workers[0]!).stdin).toBe(stdin)
     runner.dispose()
   })
 

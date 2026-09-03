@@ -504,11 +504,10 @@ button:disabled {
   outline: none;
 }
 
-.execution-panel {
+.console-panel {
   display: flex;
   flex: 0 0 auto;
-  max-height: 128px;
-  min-height: 44px;
+  max-height: 188px;
   min-width: 0;
   flex-direction: column;
   margin-bottom: 6px;
@@ -518,75 +517,117 @@ button:disabled {
   background: var(--surface);
 }
 
-.execution-panel-head {
+.console-head {
   display: flex;
   flex-shrink: 0;
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  padding: 6px 8px 4px;
+  padding: 4px 8px 2px;
 }
 
-.execution-panel-title {
+.console-title {
   margin: 0;
   color: var(--muted);
   font-family: var(--mono);
   font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
-.execution-panel-status {
+.console-status {
   margin: 0;
   color: var(--accent);
   font-size: 12px;
   font-weight: 600;
 }
 
-.execution-panel-note,
-.execution-panel-message,
-.execution-error-short {
-  margin: 0 8px 4px;
+.console-block {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.console-caption {
+  margin: 0 8px 2px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.console-stdin {
+  width: calc(100% - 16px);
+  height: 56px;
+  min-height: 48px;
+  max-height: 72px;
+  margin: 0 8px 6px;
+  padding: 6px 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 16px;
+  line-height: 1.35;
+  resize: none;
+}
+
+.console-stdin::placeholder {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.console-stdin:focus,
+.console-stdin:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.console-output {
+  min-height: 36px;
+  max-height: 64px;
+  margin: 0 8px 6px;
+  overflow: auto;
+}
+
+.console-note,
+.console-message,
+.console-error {
+  margin: 0 0 4px;
   font-size: 12px;
   line-height: 1.35;
 }
 
-.execution-error-short {
+.console-error {
   color: var(--danger);
 }
 
-.execution-panel-body {
-  min-height: 0;
-  overflow: auto;
-  padding: 0 0 6px;
-}
-
-.execution-output,
-.execution-traceback {
-  margin: 0 8px 4px;
-  max-height: 64px;
+.console-pre {
+  margin: 0 0 4px;
   overflow: auto;
   padding: 6px;
   border-radius: 8px;
   background: var(--raised);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.35;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
-.execution-stderr,
-.execution-traceback {
+.console-stderr,
+.console-traceback {
   color: var(--danger);
 }
 
-.execution-panel-meta {
+.console-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin: 0 8px;
   color: var(--muted);
   font-size: 11px;
 }
@@ -706,12 +747,12 @@ button:disabled {
 
 .run-check-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 6px;
 }
 
 .run-check-row-running {
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
 }
 
 .run-check-button {
@@ -744,14 +785,6 @@ button:disabled {
 .run-check-button-retry {
   border-color: var(--warning);
   color: var(--warning);
-}
-
-.run-check-hint {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.2;
-  text-align: center;
 }
 
 @media (prefers-reduced-motion: reduce) {

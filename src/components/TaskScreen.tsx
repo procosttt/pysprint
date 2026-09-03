@@ -3,6 +3,7 @@ import { applyHistory } from '../editor/apply.ts'
 import { canRedo, canUndo, commitChange, createHistory } from '../editor/history.ts'
 import type { HistoryOp } from '../editor/types.ts'
 import { offsetAtLine } from '../python/errors.ts'
+import { createFreeRunRequest } from '../python/freeRun.ts'
 import type { PythonRunner, RunnerState } from '../python/PythonRunner.ts'
 import {
   getBrowserStorage,
@@ -14,7 +15,7 @@ import {
 import { DIFFICULTY_LABEL } from '../types/task.ts'
 import type { Task } from '../types/task.ts'
 import { CodeEditor } from './CodeEditor.tsx'
-import { ExecutionPanel } from './ExecutionPanel.tsx'
+import { ConsolePanel } from './ConsolePanel.tsx'
 import { PythonKeypad } from './PythonKeypad.tsx'
 import { RunControls } from './RunControls.tsx'
 
@@ -81,6 +82,7 @@ export function TaskScreen({
   )
   const lastSavedCode = useRef(history.present.value)
   const [promptOpen, setPromptOpen] = useState(true)
+  const [consoleStdin, setConsoleStdin] = useState('')
 
   useEffect(() => {
     const storage = getBrowserStorage()
@@ -116,7 +118,8 @@ export function TaskScreen({
 
   function handleRun() {
     setPromptOpen(false)
-    python.runner?.run(history.present.value, task.examples[0]?.input ?? '')
+    const request = createFreeRunRequest(history.present.value, consoleStdin)
+    python.runner?.run(request.code, request.stdin)
   }
 
   function handleGoToLine(line: number) {
@@ -239,7 +242,12 @@ export function TaskScreen({
         />
       </div>
 
-      <ExecutionPanel state={python.state} onGoToLine={handleGoToLine} />
+      <ConsolePanel
+        stdin={consoleStdin}
+        onStdinChange={setConsoleStdin}
+        state={python.state}
+        onGoToLine={handleGoToLine}
+      />
 
       <footer className="task-dock">
         <PythonKeypad

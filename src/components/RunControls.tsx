@@ -37,12 +37,7 @@ export function RunControls({
             {runLabel}
           </button>
         ) : (
-          <button
-            type="button"
-            className={runClass}
-            disabled={!canRun}
-            onClick={onRun}
-          >
+          <button type="button" className={runClass} disabled={!canRun} onClick={onRun}>
             {runLabel}
           </button>
         )}
@@ -55,11 +50,7 @@ export function RunControls({
             Остановить
           </button>
         ) : null}
-        <button type="button" className="run-check-button" disabled>
-          Проверить
-        </button>
       </div>
-      <p className="run-check-hint">Проверка решений — на следующем этапе</p>
     </div>
   )
 }
