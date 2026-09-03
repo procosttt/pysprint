@@ -1,0 +1,17 @@
+---
+description: Commit and push PySprint to GitHub as procosttt after each update
+alwaysApply: true
+---
+
+# GitHub after updates
+
+After finishing code changes in this project, commit and push without waiting for a separate user request.
+
+- Remote: `https://github.com/procosttt/pysprint.git`
+- Author and committer for every commit: `procosttt <kostyapro1101@gmail.com>`
+- Do not change `git config`
+- Set identity only for the commit command, for example `git -c user.name="procosttt" -c user.email="kostyapro1101@gmail.com"` plus `GIT_AUTHOR_*` / `GIT_COMMITTER_*`
+- Do not add `Co-authored-by: Cursor` or any Cursor author/committer
+- Do not use `--no-verify` unless the user asks
+- Do not force-push to `main`
+- Push the current branch to `origin` after a successful commit
