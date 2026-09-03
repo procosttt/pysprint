@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { applyHistory } from '../editor/apply.ts'
 import { canRedo, canUndo, commitChange, createHistory } from '../editor/history.ts'
 import type { HistoryOp } from '../editor/types.ts'
+import { offsetAtLine } from '../python/errors.ts'
+import type { PythonRunner, RunnerState } from '../python/PythonRunner.ts'
 import {
   getBrowserStorage,
   loadStore,
@@ -12,14 +14,19 @@ import {
 import { DIFFICULTY_LABEL } from '../types/task.ts'
 import type { Task } from '../types/task.ts'
 import { CodeEditor } from './CodeEditor.tsx'
-import { DisabledRunCheck } from './DisabledRunCheck.tsx'
+import { ExecutionPanel } from './ExecutionPanel.tsx'
 import { PythonKeypad } from './PythonKeypad.tsx'
+import { RunControls } from './RunControls.tsx'
 
 type TaskScreenProps = {
   task: Task
   taskNumber: number
   taskCount: number
   onBack: () => void
+  python: {
+    runner: PythonRunner | null
+    state: RunnerState
+  }
 }
 
 function readInitialCode(taskId: string, starterCode: string): string {
@@ -50,7 +57,23 @@ function useVisualViewportHeight() {
   }, [])
 }
 
-export function TaskScreen({ task, taskNumber, taskCount, onBack }: TaskScreenProps) {
+function scrollTextareaToLine(element: HTMLTextAreaElement, lineNumber: number) {
+  const style = window.getComputedStyle(element)
+  const fontSize = Number.parseFloat(style.fontSize) || 16
+  const parsedLineHeight = Number.parseFloat(style.lineHeight)
+  const lineHeight = Number.isFinite(parsedLineHeight) ? parsedLineHeight : fontSize * 1.45
+  const paddingTop = Number.parseFloat(style.paddingTop) || 0
+  const targetTop = paddingTop + (lineNumber - 1) * lineHeight
+  element.scrollTop = Math.max(0, targetTop - element.clientHeight / 3)
+}
+
+export function TaskScreen({
+  task,
+  taskNumber,
+  taskCount,
+  onBack,
+  python,
+}: TaskScreenProps) {
   useVisualViewportHeight()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [history, setHistory] = useState(() =>
@@ -64,6 +87,10 @@ export function TaskScreen({ task, taskNumber, taskCount, onBack }: TaskScreenPr
     const next = markTaskOpened(loadStore(storage), task.id, task.starterCode, Date.now())
     persistStore(storage, next)
   }, [task.id, task.starterCode])
+
+  useEffect(() => {
+    python.runner?.clearOutput()
+  }, [task.id, python.runner])
 
   useEffect(() => {
     const code = history.present.value
@@ -85,6 +112,30 @@ export function TaskScreen({ task, taskNumber, taskCount, onBack }: TaskScreenPr
   function handleOp(op: HistoryOp) {
     setHistory((current) => applyHistory(current, op))
     textareaRef.current?.focus()
+  }
+
+  function handleRun() {
+    setPromptOpen(false)
+    python.runner?.run(history.present.value, task.examples[0]?.input ?? '')
+  }
+
+  function handleGoToLine(line: number) {
+    const offset = offsetAtLine(history.present.value, line)
+    setHistory((current) => ({
+      ...current,
+      present: {
+        ...current.present,
+        selectionStart: offset,
+        selectionEnd: offset,
+      },
+    }))
+    const element = textareaRef.current
+    if (!element) {
+      return
+    }
+    element.focus()
+    element.setSelectionRange(offset, offset)
+    scrollTextareaToLine(element, line)
   }
 
   const hasDraft = history.present.value !== task.starterCode
@@ -190,13 +241,22 @@ export function TaskScreen({ task, taskNumber, taskCount, onBack }: TaskScreenPr
         </p>
       </div>
 
+      <ExecutionPanel state={python.state} onGoToLine={handleGoToLine} />
+
       <footer className="task-dock">
         <PythonKeypad
           onOp={handleOp}
           canUndo={canUndo(history)}
           canRedo={canRedo(history)}
         />
-        <DisabledRunCheck />
+        <RunControls
+          canRun={python.state.canRun}
+          canStop={python.state.canStop}
+          loadError={python.state.status === 'load-error'}
+          onRun={handleRun}
+          onStop={() => python.runner?.stop()}
+          onRetryLoad={() => python.runner?.retryLoad()}
+        />
       </footer>
     </div>
   )
