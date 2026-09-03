@@ -1,6 +1,7 @@
 type RunControlsProps = {
   canRun: boolean
   canStop: boolean
+  loadingPython: boolean
   loadError: boolean
   onRun: () => void
   onStop: () => void
@@ -10,30 +11,39 @@ type RunControlsProps = {
 export function RunControls({
   canRun,
   canStop,
+  loadingPython,
   loadError,
   onRun,
   onStop,
   onRetryLoad,
 }: RunControlsProps) {
+  const showLoading = loadingPython && !canStop && !loadError
+  const runLabel = loadError
+    ? 'Повторить загрузку'
+    : showLoading
+      ? 'Загрузка Python…'
+      : 'Запустить'
+  const runClass = loadError
+    ? 'run-check-button run-check-button-retry'
+    : showLoading
+      ? 'run-check-button run-check-button-loading'
+      : 'run-check-button run-check-button-run'
+
   return (
     <div className="run-check">
       <div className={`run-check-row${canStop ? ' run-check-row-running' : ''}`}>
         {loadError ? (
-          <button
-            type="button"
-            className="run-check-button run-check-button-retry"
-            onClick={onRetryLoad}
-          >
-            Повторить загрузку
+          <button type="button" className={runClass} onClick={onRetryLoad}>
+            {runLabel}
           </button>
         ) : (
           <button
             type="button"
-            className="run-check-button run-check-button-run"
+            className={runClass}
             disabled={!canRun}
             onClick={onRun}
           >
-            Запустить
+            {runLabel}
           </button>
         )}
         {canStop ? (
@@ -45,15 +55,11 @@ export function RunControls({
             Остановить
           </button>
         ) : null}
-        <button
-          type="button"
-          className="run-check-button"
-          disabled
-          title="Будет подключено на следующем этапе"
-        >
+        <button type="button" className="run-check-button" disabled>
           Проверить
         </button>
       </div>
+      <p className="run-check-hint">Проверка решений — на следующем этапе</p>
     </div>
   )
 }

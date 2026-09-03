@@ -12,6 +12,7 @@ import { insertTemplate, TEMPLATES } from './templates.ts'
 import { TEMPLATE_IDS } from './types.ts'
 import type { EditorSnapshot, TemplateId } from './types.ts'
 import { KEYPAD_ACTIONS, KEYPAD_RIBBON } from './keypad.ts'
+import { editorHint } from './status.ts'
 
 function snap(value: string, start: number, end = start): EditorSnapshot {
   return {
@@ -132,5 +133,13 @@ describe('keypad layout data', () => {
       "'",
       '"',
     ])
+  })
+})
+
+describe('editor chrome copy', () => {
+  it('explains how to start typing and how the draft is saved', () => {
+    expect(editorHint(false, false)).toBe('Нажмите, чтобы печатать')
+    expect(editorHint(true, false)).toBe('Редактирование')
+    expect(editorHint(false, true)).toBe('Черновик сохранён')
   })
 })

@@ -341,4 +341,36 @@ describe('PythonRunner', () => {
     expect(runner.getState().status).toBe('success')
     runner.dispose()
   })
+
+  it('attaches a worker after dispose and does not spawn twice while attached', () => {
+    const workers: FakeWorker[] = []
+    const runner = new PythonRunner({
+      autostart: false,
+      createWorker: () => {
+        const worker = createFakeWorker()
+        workers.push(worker)
+        return worker.port
+      },
+    })
+
+    expect(workers.length).toBe(0)
+    runner.attach()
+    expect(workers.length).toBe(1)
+    runner.attach()
+    expect(workers.length).toBe(1)
+
+    workers[0]!.emit({ type: 'ready', requestId: workers[0]!.posted[0]!.requestId })
+    expect(runner.getState().status).toBe('ready')
+
+    runner.dispose()
+    expect(workers[0]!.terminated).toBe(true)
+    expect(runner.run('print(1)', '')).toBe(false)
+
+    runner.attach()
+    expect(workers.length).toBe(2)
+    expect(workers[1]!.terminated).toBe(false)
+    workers[1]!.emit({ type: 'ready', requestId: workers[1]!.posted[0]!.requestId })
+    expect(runner.run('print(1)', '')).toBe(true)
+    runner.dispose()
+  })
 })

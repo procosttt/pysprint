@@ -133,7 +133,8 @@ export function PythonKeypad({ onOp, canUndo, canRedo }: PythonKeypadProps) {
   }
 
   return (
-    <div className="keypad" role="toolbar" aria-label="Панель Python-клавиш">
+    <div className="keypad" role="toolbar" aria-label="Быстрые Python-клавиши">
+      <p className="keypad-caption">Быстрые Python-клавиши</p>
       <div className="keypad-actions">
         {KEYPAD_ACTIONS.map((keyDef) => (
           <KeypadButton

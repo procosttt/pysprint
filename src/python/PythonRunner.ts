@@ -13,6 +13,7 @@ export type PythonRunnerOptions = {
   createWorker: () => PythonWorkerPort
   runTimeoutMs?: number
   generateId?: () => string
+  autostart?: boolean
 }
 
 export type RunnerState = {
@@ -61,7 +62,16 @@ export class PythonRunner {
     this.runTimeoutMs = options.runTimeoutMs ?? RUN_TIMEOUT_MS
     this.generateId = options.generateId ?? defaultId
     this.snapshot = this.buildState()
-    this.spawnWorker()
+    if (options.autostart !== false) {
+      this.spawnWorker()
+    }
+  }
+
+  attach(): void {
+    this.disposed = false
+    if (!this.worker) {
+      this.spawnWorker()
+    }
   }
 
   subscribe = (listener: () => void): (() => void) => {
@@ -137,7 +147,11 @@ export class PythonRunner {
     this.disposed = true
     this.clearTimer()
     this.detachWorker()
+    this.activeRequestId = null
+    this.runStatus = 'idle'
+    this.loadStatus = 'loading'
     this.listeners.clear()
+    this.snapshot = this.buildState()
   }
 
   private deriveStatus(): RunnerStatus {

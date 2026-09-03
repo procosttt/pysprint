@@ -210,6 +210,7 @@ export function TaskScreen({
         <CodeEditor
           snapshot={history.present}
           textareaRef={textareaRef}
+          hasDraft={hasDraft}
           onFocus={() => setPromptOpen(false)}
           onInput={(value, selectionStart, selectionEnd) => {
             setHistory((current) =>
@@ -236,9 +237,6 @@ export function TaskScreen({
           }}
           onOp={handleOp}
         />
-        <p className="editor-status" aria-live="polite">
-          {hasDraft ? 'Черновик сохранён' : 'Стартовый код'}
-        </p>
       </div>
 
       <ExecutionPanel state={python.state} onGoToLine={handleGoToLine} />
@@ -252,6 +250,7 @@ export function TaskScreen({
         <RunControls
           canRun={python.state.canRun}
           canStop={python.state.canStop}
+          loadingPython={python.state.loadingPython}
           loadError={python.state.status === 'load-error'}
           onRun={handleRun}
           onStop={() => python.runner?.stop()}

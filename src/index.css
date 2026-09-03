@@ -427,6 +427,7 @@ button:disabled {
   min-width: 0;
   flex: 1 1 120px;
   flex-direction: column;
+  margin-bottom: 6px;
 }
 
 .editor {
@@ -434,6 +435,50 @@ button:disabled {
   min-height: 0;
   min-width: 0;
   flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #10141c;
+  cursor: text;
+}
+
+.editor-focused {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgb(199 255 61 / 0.45);
+}
+
+.editor-chrome {
+  display: flex;
+  flex-shrink: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px 10px 2px;
+}
+
+.editor-kicker {
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+}
+
+.editor-hint {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-focused .editor-hint {
+  color: var(--text);
 }
 
 .editor-input {
@@ -441,10 +486,11 @@ button:disabled {
   min-width: 0;
   height: 100%;
   min-height: 0;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #10141c;
+  flex: 1;
+  padding: 6px 10px 8px;
+  border: 0;
+  border-radius: 0 0 8px 8px;
+  background: transparent;
   color: var(--text);
   font-family: var(--mono);
   font-size: 16px;
@@ -453,12 +499,9 @@ button:disabled {
   overflow: auto;
 }
 
-.editor-status {
-  flex-shrink: 0;
-  margin: 4px 0 6px;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.2;
+.editor-input:focus,
+.editor-input:focus-visible {
+  outline: none;
 }
 
 .execution-panel {
@@ -568,10 +611,19 @@ button:disabled {
 
 .keypad {
   min-width: 0;
-  padding: 6px 6px 4px;
+  padding: 4px 6px 4px;
   border-top: 2px solid var(--accent);
   border-radius: 12px 12px 0 0;
   background: var(--raised);
+}
+
+.keypad-caption {
+  margin: 0 2px 3px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
 }
 
 .keypad-actions {
@@ -680,6 +732,10 @@ button:disabled {
   color: #14180a;
 }
 
+.run-check-button-loading {
+  font-size: 13px;
+}
+
 .run-check-button-stop {
   border-color: var(--danger);
   color: var(--danger);
@@ -691,10 +747,10 @@ button:disabled {
 }
 
 .run-check-hint {
-  margin: 3px 0 0;
+  margin: 4px 0 0;
   color: var(--muted);
-  font-size: 10px;
-  line-height: 1;
+  font-size: 11px;
+  line-height: 1.2;
   text-align: center;
 }
 

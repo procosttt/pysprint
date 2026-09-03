@@ -1,9 +1,11 @@
-import { useLayoutEffect, type KeyboardEvent, type RefObject } from 'react'
+import { useLayoutEffect, useState, type KeyboardEvent, type RefObject } from 'react'
+import { editorHint } from '../editor/status.ts'
 import type { EditorSnapshot, HistoryOp } from '../editor/types.ts'
 
 type CodeEditorProps = {
   snapshot: EditorSnapshot
   textareaRef: RefObject<HTMLTextAreaElement | null>
+  hasDraft: boolean
   onInput: (value: string, selectionStart: number, selectionEnd: number) => void
   onSelectRange: (selectionStart: number, selectionEnd: number) => void
   onOp: (op: HistoryOp) => void
@@ -13,11 +15,14 @@ type CodeEditorProps = {
 export function CodeEditor({
   snapshot,
   textareaRef,
+  hasDraft,
   onInput,
   onSelectRange,
   onOp,
   onFocus,
 }: CodeEditorProps) {
+  const [focused, setFocused] = useState(false)
+
   useLayoutEffect(() => {
     const element = textareaRef.current
     if (!element) {
@@ -30,6 +35,10 @@ export function CodeEditor({
       element.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd)
     }
   }, [snapshot, textareaRef])
+
+  function focusEditor() {
+    textareaRef.current?.focus()
+  }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === 'Tab') {
@@ -44,7 +53,24 @@ export function CodeEditor({
   }
 
   return (
-    <div className="editor">
+    <div
+      className={`editor${focused ? ' editor-focused' : ''}`}
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) {
+          focusEditor()
+        }
+      }}
+    >
+      <div
+        className="editor-chrome"
+        onPointerDown={(event) => {
+          event.preventDefault()
+          focusEditor()
+        }}
+      >
+        <span className="editor-kicker">КОД</span>
+        <span className="editor-hint" aria-live="polite">{editorHint(focused, hasDraft)}</span>
+      </div>
       <label className="visually-hidden" htmlFor="python-editor">
         Код Python
       </label>
@@ -65,7 +91,11 @@ export function CodeEditor({
           const target = event.target
           onInput(target.value, target.selectionStart, target.selectionEnd)
         }}
-        onFocus={onFocus}
+        onFocus={() => {
+          setFocused(true)
+          onFocus?.()
+        }}
+        onBlur={() => setFocused(false)}
         onPointerDown={onFocus}
         onSelect={(event) => {
           const target = event.currentTarget
