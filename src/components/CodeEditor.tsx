@@ -1,5 +1,6 @@
-import { useLayoutEffect, useState, type KeyboardEvent, type RefObject } from 'react'
+import { useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
 import { editorHint } from '../editor/status.ts'
+import { historyShortcut } from '../editor/shortcuts.ts'
 import { CODE_MAX_LENGTH } from '../python/protocol.ts'
 import type { EditorSnapshot, HistoryOp } from '../editor/types.ts'
 
@@ -7,20 +8,71 @@ type CodeEditorProps = {
   snapshot: EditorSnapshot
   textareaRef: RefObject<HTMLTextAreaElement | null>
   hasDraft: boolean
+  canUndo: boolean
+  canRedo: boolean
   onInput: (value: string, selectionStart: number, selectionEnd: number) => void
   onSelectRange: (selectionStart: number, selectionEnd: number) => void
   onOp: (op: HistoryOp) => void
-  onFocus?: () => void
+}
+
+function HistoryButton({
+  label,
+  ariaLabel,
+  disabled,
+  op,
+  onOp,
+}: {
+  label: string
+  ariaLabel: string
+  disabled: boolean
+  op: HistoryOp
+  onOp: (op: HistoryOp) => void
+}) {
+  const skipClickRef = useRef(false)
+
+  return (
+    <button
+      type="button"
+      className="editor-history-button"
+      aria-label={ariaLabel}
+      disabled={disabled}
+      onPointerDown={(event) => {
+        if (disabled || event.button !== 0) {
+          return
+        }
+        event.preventDefault()
+        skipClickRef.current = true
+        onOp(op)
+      }}
+      onMouseDown={(event) => {
+        event.preventDefault()
+      }}
+      onClick={(event) => {
+        if (skipClickRef.current) {
+          event.preventDefault()
+          skipClickRef.current = false
+          return
+        }
+        if (disabled) {
+          return
+        }
+        onOp(op)
+      }}
+    >
+      {label}
+    </button>
+  )
 }
 
 export function CodeEditor({
   snapshot,
   textareaRef,
   hasDraft,
+  canUndo,
+  canRedo,
   onInput,
   onSelectRange,
   onOp,
-  onFocus,
 }: CodeEditorProps) {
   const [focused, setFocused] = useState(false)
 
@@ -42,6 +94,17 @@ export function CodeEditor({
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.nativeEvent.isComposing) {
+      return
+    }
+
+    const shortcut = historyShortcut(event)
+    if (shortcut) {
+      event.preventDefault()
+      onOp({ kind: shortcut })
+      return
+    }
+
     if (event.key === 'Tab') {
       event.preventDefault()
       onOp({ kind: 'tab' })
@@ -60,13 +123,32 @@ export function CodeEditor({
         if (event.target === textareaRef.current) {
           return
         }
+        if ((event.target as HTMLElement).closest('.editor-history-button')) {
+          return
+        }
         event.preventDefault()
         focusEditor()
       }}
     >
       <div className="editor-chrome">
         <span className="editor-kicker">КОД</span>
-        <span className="editor-hint" aria-live="polite">{editorHint(hasDraft)}</span>
+        <span className="editor-hint" aria-live="polite">
+          {editorHint(hasDraft)}
+        </span>
+        <HistoryButton
+          label="↶"
+          ariaLabel="Отменить последнее изменение"
+          disabled={!canUndo}
+          op={{ kind: 'undo' }}
+          onOp={onOp}
+        />
+        <HistoryButton
+          label="↷"
+          ariaLabel="Вернуть отменённое изменение"
+          disabled={!canRedo}
+          op={{ kind: 'redo' }}
+          onOp={onOp}
+        />
       </div>
       <label className="visually-hidden" htmlFor="python-editor">
         Код Python
@@ -90,12 +172,8 @@ export function CodeEditor({
           const target = event.target
           onInput(target.value, target.selectionStart, target.selectionEnd)
         }}
-        onFocus={() => {
-          setFocused(true)
-          onFocus?.()
-        }}
+        onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        onPointerDown={onFocus}
         onSelect={(event) => {
           const target = event.currentTarget
           onSelectRange(target.selectionStart, target.selectionEnd)

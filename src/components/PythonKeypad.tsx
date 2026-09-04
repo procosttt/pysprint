@@ -1,13 +1,11 @@
 import { useRef, type PointerEvent } from 'react'
-import { KEYPAD_ACTIONS, KEYPAD_RIBBON } from '../editor/keypad.ts'
+import { KEYPAD_KEYS } from '../editor/keypad.ts'
 import type { KeypadKey } from '../editor/keypad.ts'
 import { isTapPointer } from '../editor/pointer.ts'
 import type { HistoryOp } from '../editor/types.ts'
 
 type PythonKeypadProps = {
   onOp: (op: HistoryOp) => void
-  canUndo: boolean
-  canRedo: boolean
 }
 
 type PointerTrack = {
@@ -18,36 +16,22 @@ type PointerTrack = {
   panning: boolean
 }
 
-function isKeyDisabled(keyDef: KeypadKey, canUndo: boolean, canRedo: boolean): boolean {
-  if (keyDef.op.kind === 'undo') {
-    return !canUndo
-  }
-  if (keyDef.op.kind === 'redo') {
-    return !canRedo
-  }
-  return false
-}
-
 function KeypadButton({
   keyDef,
-  disabled,
   onOp,
   getRibbonScroll,
   setRibbonScroll,
-  variant,
 }: {
   keyDef: KeypadKey
-  disabled: boolean
   onOp: (op: HistoryOp) => void
-  getRibbonScroll?: () => number
-  setRibbonScroll?: (scrollLeft: number) => void
-  variant: 'action' | 'ribbon'
+  getRibbonScroll: () => number
+  setRibbonScroll: (scrollLeft: number) => void
 }) {
   const trackRef = useRef<PointerTrack | null>(null)
   const skipClickRef = useRef(false)
 
   function handlePointerDown(event: PointerEvent<HTMLButtonElement>) {
-    if (disabled || event.button !== 0) {
+    if (event.button !== 0) {
       return
     }
     event.preventDefault()
@@ -57,7 +41,7 @@ function KeypadButton({
       id: event.pointerId,
       x: event.clientX,
       y: event.clientY,
-      scroll: getRibbonScroll?.() ?? 0,
+      scroll: getRibbonScroll(),
       panning: false,
     }
   }
@@ -71,7 +55,7 @@ function KeypadButton({
       return
     }
     trackRef.current = { ...track, panning: true }
-    setRibbonScroll?.(track.scroll - (event.clientX - track.x))
+    setRibbonScroll(track.scroll - (event.clientX - track.x))
   }
 
   function finishPointer(event: PointerEvent<HTMLButtonElement>, apply: boolean) {
@@ -83,7 +67,7 @@ function KeypadButton({
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
-    if (apply && !track.panning && !disabled) {
+    if (apply && !track.panning) {
       onOp(keyDef.op)
     }
     window.setTimeout(() => {
@@ -94,9 +78,8 @@ function KeypadButton({
   return (
     <button
       type="button"
-      className={`keypad-key keypad-key-${variant}`}
+      className="keypad-key"
       aria-label={keyDef.ariaLabel}
-      disabled={disabled}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={(event) => finishPointer(event, true)}
@@ -107,9 +90,6 @@ function KeypadButton({
           skipClickRef.current = false
           return
         }
-        if (disabled) {
-          return
-        }
         onOp(keyDef.op)
       }}
     >
@@ -118,7 +98,7 @@ function KeypadButton({
   )
 }
 
-export function PythonKeypad({ onOp, canUndo, canRedo }: PythonKeypadProps) {
+export function PythonKeypad({ onOp }: PythonKeypadProps) {
   const ribbonRef = useRef<HTMLDivElement>(null)
 
   function getRibbonScroll() {
@@ -133,29 +113,16 @@ export function PythonKeypad({ onOp, canUndo, canRedo }: PythonKeypadProps) {
   }
 
   return (
-    <div className="keypad" role="toolbar" aria-label="Быстрые Python-клавиши">
-      <p className="keypad-caption">Быстрые Python-клавиши</p>
-      <div className="keypad-actions">
-        {KEYPAD_ACTIONS.map((keyDef) => (
-          <KeypadButton
-            key={keyDef.id}
-            keyDef={keyDef}
-            variant="action"
-            disabled={isKeyDisabled(keyDef, canUndo, canRedo)}
-            onOp={onOp}
-          />
-        ))}
-      </div>
+    <div className="keypad" role="toolbar" aria-label="Python-клавиши">
+      <p className="keypad-caption">Python-клавиши</p>
       <div className="keypad-ribbon-wrap">
         <div className="keypad-ribbon" ref={ribbonRef}>
-          {KEYPAD_RIBBON.map((keyDef) => (
+          {KEYPAD_KEYS.map((keyDef) => (
             <KeypadButton
               key={keyDef.id}
               keyDef={keyDef}
-              variant="ribbon"
               getRibbonScroll={getRibbonScroll}
               setRibbonScroll={setRibbonScroll}
-              disabled={isKeyDisabled(keyDef, canUndo, canRedo)}
               onOp={onOp}
             />
           ))}

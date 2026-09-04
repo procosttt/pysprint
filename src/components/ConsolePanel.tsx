@@ -45,14 +45,10 @@ export function ConsolePanel({ outputOpen, onToggleOutput, state, onGoToLine }: 
 
   if (!showOutput) {
     return (
-      <section className="python-status" aria-label="Статус Python" aria-live="polite">
-        <p className="console-status">{statusLabel(state)}</p>
-        {state.status === 'load-error' && state.message ? (
-          <p className="console-message">{state.message}</p>
-        ) : (
-          <p className="python-status-hint">Только текстовый вывод · лимит запуска 3 с</p>
-        )}
-      </section>
+      <div className="visually-hidden" aria-live="polite">
+        {statusLabel(state)}
+        {state.status === 'load-error' && state.message ? ` ${state.message}` : ''}
+      </div>
     )
   }
 
@@ -68,9 +64,6 @@ export function ConsolePanel({ outputOpen, onToggleOutput, state, onGoToLine }: 
         <span className="console-status">{statusLabel(state)}</span>
         <span className="prompt-toggle-action">{outputOpen ? 'Свернуть' : 'Открыть'}</span>
       </button>
-      <p className="python-status-hint console-limit-hint">
-        Только текстовый вывод · лимит запуска 3 с
-      </p>
 
       {outputOpen ? (
         <div className="console-output" aria-live="polite">

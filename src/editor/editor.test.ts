@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { applyHistory } from './apply.ts'
-import { createHistory, createSnapshot } from './history.ts'
+import { commitChange, createHistory, createSnapshot, MAX_HISTORY } from './history.ts'
 import {
   insertPair,
   insertTab,
@@ -10,9 +10,11 @@ import {
 } from './operations.ts'
 import { insertTemplate, TEMPLATES } from './templates.ts'
 import { TEMPLATE_IDS } from './types.ts'
-import type { EditorSnapshot, TemplateId } from './types.ts'
-import { KEYPAD_ACTIONS, KEYPAD_KEYS, KEYPAD_RIBBON } from './keypad.ts'
+import type { EditorHistory, EditorSnapshot, TemplateId } from './types.ts'
+import { KEYPAD_KEYS } from './keypad.ts'
+import { historyShortcut } from './shortcuts.ts'
 import { editorHint } from './status.ts'
+import { initialPromptOpen } from '../state/prompt.ts'
 
 function snap(value: string, start: number, end = start): EditorSnapshot {
   return {
@@ -87,48 +89,87 @@ describe('editor operations', () => {
       snap('    if x:\n        ', '    if x:\n        '.length),
     )
   })
+})
 
-  it('undoes and redoes editor changes', () => {
-    let history = createHistory('a')
-    history = applyHistory(history, { kind: 'insert', text: 'b' })
+describe('editor history', () => {
+  it('undoes text and cursor, then redoes them', () => {
+    let history = createHistory('ab')
+    history = applyHistory(history, { kind: 'insert', text: 'c' })
+    expect(history.present).toEqual(createSnapshot('abc'))
+
+    history = applyHistory(history, { kind: 'undo' })
     expect(history.present).toEqual(createSnapshot('ab'))
 
+    history = applyHistory(history, { kind: 'redo' })
+    expect(history.present).toEqual(createSnapshot('abc'))
+  })
+
+  it('clears redo after a new change following undo', () => {
+    let history = createHistory('a')
+    history = applyHistory(history, { kind: 'insert', text: 'b' })
+    history = applyHistory(history, { kind: 'undo' })
+    history = applyHistory(history, { kind: 'insert', text: 'c' })
+    expect(history.present.value).toBe('ac')
+    expect(history.future).toEqual([])
+
+    history = applyHistory(history, { kind: 'redo' })
+    expect(history.present.value).toBe('ac')
+  })
+
+  it('caps past snapshots at 100', () => {
+    let history = createHistory('')
+    for (let index = 1; index <= 120; index += 1) {
+      history = commitChange(history, createSnapshot('x'.repeat(index)))
+    }
+    expect(history.past).toHaveLength(MAX_HISTORY)
+    expect(history.present.value).toHaveLength(120)
+  })
+
+  it('puts keypad operations into the same history', () => {
+    let history: EditorHistory = {
+      past: [],
+      present: snap('xy', 0, 2),
+      future: [],
+    }
+    history = applyHistory(history, { kind: 'pair', open: '(', close: ')' })
     history = applyHistory(history, { kind: 'tab' })
-    expect(history.present.value).toBe('ab    ')
+    history = applyHistory(history, { kind: 'template', id: 'print' })
+    history = applyHistory(history, { kind: 'enter' })
+    const afterOps = history.present
 
     history = applyHistory(history, { kind: 'undo' })
-    expect(history.present.value).toBe('ab')
-
-    history = applyHistory(history, { kind: 'undo' })
-    expect(history.present.value).toBe('a')
+    expect(history.present.value).not.toBe(afterOps.value)
 
     history = applyHistory(history, { kind: 'redo' })
-    expect(history.present.value).toBe('ab')
-
-    history = applyHistory(history, { kind: 'redo' })
-    expect(history.present.value).toBe('ab    ')
+    expect(history.present).toEqual(afterOps)
   })
 })
 
 describe('keypad layout data', () => {
-  it('puts navigation keys on the fixed row and frequent symbols first on the ribbon', () => {
-    expect(KEYPAD_ACTIONS.map((key) => key.id)).toEqual([
-      'tab',
-      'left',
-      'right',
-      'undo',
-      'redo',
-    ])
-    expect(KEYPAD_RIBBON.map((key) => key.label).slice(0, 8)).toEqual([
-      'print()',
-      '(',
-      ')',
+  it('keeps the first visible keys in the required order', () => {
+    expect(KEYPAD_KEYS.map((key) => key.label).slice(8)).toEqual([
       '[',
       ']',
-      ':',
-      '=',
       "'",
+      '"',
+      '<',
+      '>',
+      'for',
+      'if',
+      'while',
+      'range()',
     ])
+  })
+
+  it('does not put undo or redo on the Python ribbon', () => {
+    const ids = KEYPAD_KEYS.map((key) => key.id)
+    const labels = KEYPAD_KEYS.map((key) => key.label)
+    expect(ids).not.toContain('undo')
+    expect(ids).not.toContain('redo')
+    expect(labels).not.toContain('Undo')
+    expect(labels).not.toContain('Redo')
+    expect(labels).not.toContain('↶')
+    expect(labels).not.toContain('↷')
   })
 
   it('does not expose input() keypad keys', () => {
@@ -138,9 +179,51 @@ describe('keypad layout data', () => {
   })
 })
 
+describe('history shortcuts', () => {
+  it('maps Ctrl/Cmd Z Y and Shift+Z without leaving room for native undo', () => {
+    expect(
+      historyShortcut({ key: 'z', ctrlKey: true, metaKey: false, shiftKey: false }),
+    ).toBe('undo')
+    expect(
+      historyShortcut({ key: 'z', ctrlKey: false, metaKey: true, shiftKey: false }),
+    ).toBe('undo')
+    expect(
+      historyShortcut({ key: 'y', ctrlKey: true, metaKey: false, shiftKey: false }),
+    ).toBe('redo')
+    expect(
+      historyShortcut({ key: 'z', ctrlKey: true, metaKey: false, shiftKey: true }),
+    ).toBe('redo')
+    expect(
+      historyShortcut({ key: 'z', ctrlKey: false, metaKey: true, shiftKey: true }),
+    ).toBe('redo')
+    expect(
+      historyShortcut({ key: 'z', ctrlKey: false, metaKey: false, shiftKey: false }),
+    ).toBe(null)
+  })
+})
+
 describe('editor chrome copy', () => {
-  it('explains how to start typing and how the draft is saved', () => {
-    expect(editorHint(false)).toBe('Нажмите здесь и начните писать')
-    expect(editorHint(true)).toBe('Черновик сохранён')
+  it('shows a compact saved label only when a draft exists', () => {
+    expect(editorHint(false)).toBe('')
+    expect(editorHint(true)).toBe('Сохранено')
+  })
+})
+
+describe('task prompt open state', () => {
+  it('opens the prompt for a new unused task', () => {
+    expect(initialPromptOpen('', '')).toBe(true)
+    expect(initialPromptOpen('print()\n', 'print()\n')).toBe(true)
+  })
+
+  it('keeps the prompt closed when a draft already exists', () => {
+    expect(initialPromptOpen('print(1)', '')).toBe(false)
+  })
+
+  it('does not change editor code when prompt visibility is toggled', () => {
+    const history = applyHistory(createHistory(''), { kind: 'insert', text: 'print(1)' })
+    const snapshot = history.present
+    expect(initialPromptOpen(snapshot.value, '')).toBe(false)
+    expect(history.present).toEqual(snapshot)
+    expect(history.present.value).toBe('print(1)')
   })
 })

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { applyHistory } from '../editor/apply.ts'
 import { canRedo, canUndo, commitChange, createHistory } from '../editor/history.ts'
 import type { HistoryOp } from '../editor/types.ts'
@@ -11,12 +11,14 @@ import {
   persistStore,
   saveDraftCode,
 } from '../storage/drafts.ts'
-import { DIFFICULTY_LABEL, prototypeScreenLabel } from '../types/task.ts'
-import type { Task, TruthTableFragment } from '../types/task.ts'
+import { initialPromptOpen } from '../state/prompt.ts'
+import { DIFFICULTY_LABEL } from '../types/task.ts'
+import type { Task } from '../types/task.ts'
 import { CodeEditor } from './CodeEditor.tsx'
 import { ConsolePanel } from './ConsolePanel.tsx'
 import { PythonKeypad } from './PythonKeypad.tsx'
 import { RunControls } from './RunControls.tsx'
+import { TaskPromptBody } from './TaskPrompt.tsx'
 
 type TaskScreenProps = {
   task: Task
@@ -58,41 +60,6 @@ function useVisualViewportHeight() {
   }, [])
 }
 
-function TruthTable({ table }: { table: TruthTableFragment }) {
-  return (
-    <div className="truth-wrap">
-      <table className="truth-table">
-        <caption className="truth-caption">Фрагмент таблицы истинности</caption>
-        <thead>
-          <tr>
-            <th scope="col">
-              <span className="visually-hidden">Столбец 1</span>
-            </th>
-            <th scope="col">
-              <span className="visually-hidden">Столбец 2</span>
-            </th>
-            <th scope="col">
-              <span className="visually-hidden">Столбец 3</span>
-            </th>
-            <th scope="col">
-              <span className="visually-hidden">Столбец 4</span>
-            </th>
-            <th scope="col">F</th>
-          </tr>
-        </thead>
-        <tbody>
-          {table.rows.map((row, rowIndex) => (
-            <tr key={rowIndex}>
-              {row.map((cell, cellIndex) => (
-                <td key={cellIndex}>{cell === null ? '' : cell}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
 function scrollTextareaToLine(element: HTMLTextAreaElement, lineNumber: number) {
   const style = window.getComputedStyle(element)
   const fontSize = Number.parseFloat(style.fontSize) || 16
@@ -113,11 +80,14 @@ export function TaskScreen({
 }: TaskScreenProps) {
   useVisualViewportHeight()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [history, setHistory] = useState(() =>
-    createHistory(readInitialCode(task.id, task.starterCode)),
-  )
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const dialogTitleRef = useRef<HTMLHeadingElement>(null)
+  const initialCode = readInitialCode(task.id, task.starterCode)
+  const [history, setHistory] = useState(() => createHistory(initialCode))
   const lastSavedCode = useRef(history.present.value)
-  const [promptOpen, setPromptOpen] = useState(true)
+  const [promptOpen, setPromptOpen] = useState(() =>
+    initialPromptOpen(initialCode, task.starterCode),
+  )
   const [outputOpen, setOutputOpen] = useState(true)
 
   useEffect(() => {
@@ -147,18 +117,51 @@ export function TaskScreen({
     persistStore(storage, next)
   }, [history.present.value, task.id, task.starterCode])
 
-  function handleGoToCode() {
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) {
+      return
+    }
+    if (promptOpen) {
+      if (!dialog.open) {
+        dialog.showModal()
+      }
+      dialogTitleRef.current?.focus()
+      const previousOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = previousOverflow
+      }
+    }
+    if (dialog.open) {
+      dialog.close()
+    }
+    return undefined
+  }, [promptOpen])
+
+  function focusEditor() {
+    window.setTimeout(() => {
+      textareaRef.current?.focus()
+    }, 0)
+  }
+
+  function handlePromptClose() {
     setPromptOpen(false)
-    textareaRef.current?.focus()
+    focusEditor()
+  }
+
+  function handleGoToCode() {
+    dialogRef.current?.close()
   }
 
   function handleOp(op: HistoryOp) {
     setHistory((current) => applyHistory(current, op))
-    textareaRef.current?.focus()
+    window.setTimeout(() => {
+      textareaRef.current?.focus()
+    }, 0)
   }
 
   function handleRun() {
-    setPromptOpen(false)
     setOutputOpen(true)
     python.runner?.run(history.present.value, '')
   }
@@ -184,6 +187,7 @@ export function TaskScreen({
 
   const hasDraft = history.present.value !== task.starterCode
   const number = String(taskNumber).padStart(2, '0')
+  const fullTitle = `${number} · ${task.title}`
 
   return (
     <div className="task-screen">
@@ -201,8 +205,8 @@ export function TaskScreen({
           </svg>
           <span className="visually-hidden">Назад</span>
         </button>
-        <h1 className="task-title">
-          {number} · {task.title}
+        <h1 className="task-title" title={fullTitle} aria-label={fullTitle}>
+          {fullTitle}
         </h1>
         <p className="task-meta">
           <span className={`difficulty difficulty-${task.difficulty}`}>
@@ -214,45 +218,52 @@ export function TaskScreen({
         </p>
       </header>
 
-      <section className={`prompt${promptOpen ? ' prompt-open' : ''}`}>
-        <button
-          type="button"
-          className="prompt-toggle"
-          aria-expanded={promptOpen}
-          onClick={() => setPromptOpen((open) => !open)}
-        >
-          <span>Условие</span>
-          <span className="prompt-toggle-action">
-            {promptOpen ? 'Свернуть' : 'Открыть условие'}
-          </span>
-        </button>
-        {promptOpen ? (
-          <>
-            <div className="prompt-body">
-              {task.prototypeNumber ? (
-                <p className="prototype-caption">{prototypeScreenLabel(task.prototypeNumber)}</p>
-              ) : null}
-              <p className="prompt-text">{task.statement}</p>
-              {task.truthTable ? <TruthTable table={task.truthTable} /> : null}
-              {task.prototypeNumber ? (
-                <p className="prototype-disclaimer">
-                  Авторская задача по формату ЕГЭ. Не является официальным заданием ФИПИ.
-                </p>
-              ) : null}
-            </div>
-            <button type="button" className="go-to-code" onClick={handleGoToCode}>
-              Перейти к коду
-            </button>
-          </>
-        ) : null}
-      </section>
+      <button
+        type="button"
+        className="prompt-toggle"
+        aria-expanded={promptOpen}
+        aria-haspopup="dialog"
+        aria-controls="task-prompt-dialog"
+        onClick={() => setPromptOpen(true)}
+      >
+        <span>Условие</span>
+        <span className="prompt-toggle-action">Открыть</span>
+      </button>
+
+      <dialog
+        ref={dialogRef}
+        id="task-prompt-dialog"
+        className="prompt-dialog"
+        aria-labelledby="task-prompt-title"
+        onClose={handlePromptClose}
+      >
+        <div className="prompt-dialog-header">
+          <h2
+            id="task-prompt-title"
+            ref={dialogTitleRef}
+            className="prompt-dialog-title"
+            tabIndex={-1}
+          >
+            {fullTitle}
+          </h2>
+        </div>
+        <div className="prompt-dialog-body">
+          <TaskPromptBody task={task} />
+        </div>
+        <div className="prompt-dialog-footer">
+          <button type="button" className="go-to-code" onClick={handleGoToCode}>
+            Перейти к коду
+          </button>
+        </div>
+      </dialog>
 
       <div className="editor-zone">
         <CodeEditor
           snapshot={history.present}
           textareaRef={textareaRef}
           hasDraft={hasDraft}
-          onFocus={() => setPromptOpen(false)}
+          canUndo={canUndo(history)}
+          canRedo={canRedo(history)}
           onInput={(value, selectionStart, selectionEnd) => {
             setHistory((current) =>
               commitChange(current, { value, selectionStart, selectionEnd }),
@@ -294,11 +305,7 @@ export function TaskScreen({
       ) : null}
 
       <footer className="task-dock">
-        <PythonKeypad
-          onOp={handleOp}
-          canUndo={canUndo(history)}
-          canRedo={canRedo(history)}
-        />
+        <PythonKeypad onOp={handleOp} />
         <RunControls
           canRun={python.state.canRun}
           canStop={python.state.canStop}

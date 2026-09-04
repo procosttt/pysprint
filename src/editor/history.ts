@@ -1,6 +1,6 @@
 import type { EditorHistory, EditorSnapshot } from './types.ts'
 
-const MAX_HISTORY = 100
+export const MAX_HISTORY = 100
 
 export function createSnapshot(value: string, cursor = value.length): EditorSnapshot {
   return {
