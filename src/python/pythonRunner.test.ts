@@ -81,7 +81,7 @@ describe('PythonRunner', () => {
     runner.dispose()
   })
 
-  it('sends code and stdin with a unique requestId', () => {
+  it('sends editor code with empty stdin', () => {
     const workers: FakeWorker[] = []
     const runner = new PythonRunner({
       createWorker: () => {

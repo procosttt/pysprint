@@ -3,7 +3,7 @@ import type { Task } from '../types/task.ts'
 export const TASKS: readonly Task[] = [
   {
     id: 'track-total',
-    title: 'Три подхода',
+    title: 'Сумма трёх чисел',
     statement:
       'Тренер записал число повторений в трёх подходах: 12, 8 и 10. С помощью Python вычислите общее число повторений и выведите его.',
     difficulty: 'easy',
@@ -12,7 +12,7 @@ export const TASKS: readonly Task[] = [
   },
   {
     id: 'gate-check',
-    title: 'Допуск на сет',
+    title: 'Проверка условия',
     statement:
       'Результат разминки равен 8, результат контрольного подхода равен 9. Если оба значения не меньше 8, выведите ALLOW. Иначе выведите DENY.',
     difficulty: 'easy',
@@ -21,7 +21,7 @@ export const TASKS: readonly Task[] = [
   },
   {
     id: 'rep-sum',
-    title: 'Сумма серии',
+    title: 'Сумма чисел в цикле',
     statement:
       'Даны числа 1, 2, 3 и 4. С помощью Python вычислите их сумму и выведите результат.',
     difficulty: 'medium',

@@ -32,13 +32,8 @@ export function ConsolePanel({ outputOpen, onToggleOutput, state, onGoToLine }: 
   const result = state.result
   const showOutput = result !== null || state.status === 'running'
   const stdout = result?.stdout ?? ''
-  const traceback = result?.error?.traceback ?? ''
-  const stderr = result?.stderr ?? ''
-  const extraStderr =
-    stderr && traceback && stderr.trim() === traceback.trim() ? '' : stderr
-  const emptyOutput = Boolean(result && result.ok && stdout.length === 0 && stderr.length === 0)
+  const emptyOutput = Boolean(result && result.ok && stdout.length === 0)
   const line = result?.line ?? result?.error?.line ?? null
-  const showTraceback = Boolean(result && !result.ok && traceback)
   const statusMessage =
     state.message &&
     state.status !== 'success' &&
@@ -54,9 +49,7 @@ export function ConsolePanel({ outputOpen, onToggleOutput, state, onGoToLine }: 
         <p className="console-status">{statusLabel(state)}</p>
         {state.status === 'load-error' && state.message ? (
           <p className="console-message">{state.message}</p>
-        ) : (
-          <p className="python-status-hint">Результат появится после запуска</p>
-        )}
+        ) : null}
       </section>
     )
   }
@@ -86,9 +79,7 @@ export function ConsolePanel({ outputOpen, onToggleOutput, state, onGoToLine }: 
             <p className="console-note">Программа завершилась без вывода</p>
           ) : null}
           {stdout ? <pre className="console-pre console-stdout">{stdout}</pre> : null}
-          {extraStderr ? <pre className="console-pre console-stderr">{extraStderr}</pre> : null}
           {result?.error ? <p className="console-error">{result.error.message}</p> : null}
-          {showTraceback ? <pre className="console-pre console-traceback">{result?.error?.traceback}</pre> : null}
 
           {result ? (
             <div className="console-meta">

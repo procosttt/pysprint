@@ -56,20 +56,16 @@ export function CodeEditor({
     <div
       className={`editor${focused ? ' editor-focused' : ''}`}
       onPointerDown={(event) => {
-        if (event.target === event.currentTarget) {
-          focusEditor()
+        if (event.target === textareaRef.current) {
+          return
         }
+        event.preventDefault()
+        focusEditor()
       }}
     >
-      <div
-        className="editor-chrome"
-        onPointerDown={(event) => {
-          event.preventDefault()
-          focusEditor()
-        }}
-      >
+      <div className="editor-chrome">
         <span className="editor-kicker">КОД</span>
-        <span className="editor-hint" aria-live="polite">{editorHint(focused, hasDraft)}</span>
+        <span className="editor-hint" aria-live="polite">{editorHint(hasDraft)}</span>
       </div>
       <label className="visually-hidden" htmlFor="python-editor">
         Код Python
@@ -79,6 +75,7 @@ export function CodeEditor({
         ref={textareaRef}
         className="editor-input"
         value={snapshot.value}
+        placeholder="Напишите Python-код здесь…"
         spellCheck={false}
         autoCorrect="off"
         autoCapitalize="off"

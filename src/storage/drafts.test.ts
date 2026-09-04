@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   emptyStore,
+  LEGACY_STORAGE_KEY,
   loadStore,
   markTaskOpened,
   persistStore,
@@ -63,6 +64,63 @@ describe('draft storage', () => {
     expect(store.drafts['rep-sum']?.updatedAt).toBe(1000)
     expect(store.drafts['rep-sum']?.lastOpenedAt).toBe(2500)
     expect(store.drafts['rep-sum']?.code).toBe('n = 3\n')
+  })
+
+  it('does not load drafts from the legacy storage key', () => {
+    const storage = createMemoryStorage({
+      [LEGACY_STORAGE_KEY]: JSON.stringify({
+        version: 1,
+        lastOpenedTaskId: 'track-total',
+        drafts: {
+          'track-total': {
+            code: 'a = int(input())\nb = int(input())\nc = int(input())\n',
+            updatedAt: 1,
+            lastOpenedAt: 1,
+            isUserDraft: true,
+          },
+        },
+      }),
+    })
+
+    expect(loadStore(storage)).toEqual(emptyStore())
+    expect(storage.getItem(LEGACY_STORAGE_KEY)).toContain('int(input())')
+  })
+
+  it('saves new code to the current storage key and restores it', () => {
+    const storage = createMemoryStorage({
+      [LEGACY_STORAGE_KEY]: JSON.stringify({
+        version: 1,
+        lastOpenedTaskId: 'track-total',
+        drafts: {
+          'track-total': {
+            code: 'a = int(input())\n',
+            updatedAt: 1,
+            lastOpenedAt: 1,
+            isUserDraft: true,
+          },
+        },
+      }),
+    })
+
+    let store = saveDraftCode(emptyStore(), 'track-total', 'print(2 + 2)\n', '', 50)
+    persistStore(storage, store)
+
+    const loaded = loadStore(storage)
+    expect(loaded.drafts['track-total']?.code).toBe('print(2 + 2)\n')
+    expect(loaded.drafts['track-total']?.isUserDraft).toBe(true)
+    expect(storage.getItem(STORAGE_KEY)).toContain('print(2 + 2)')
+    expect(storage.getItem(LEGACY_STORAGE_KEY)).toContain('int(input())')
+  })
+
+  it('does not turn a task into a user draft when it is only opened', () => {
+    const storage = createMemoryStorage()
+    let store = markTaskOpened(emptyStore(), 'track-total', '', 100)
+    persistStore(storage, store)
+
+    const loaded = loadStore(storage)
+    expect(loaded.lastOpenedTaskId).toBe('track-total')
+    expect(loaded.drafts['track-total']?.code).toBe('')
+    expect(loaded.drafts['track-total']?.isUserDraft).toBe(false)
   })
 
   it('recovers from corrupted or stale localStorage entries', () => {

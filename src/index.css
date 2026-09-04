@@ -149,9 +149,8 @@ button:disabled {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 52px;
   min-height: 52px;
-  padding: 0 16px;
+  padding: 10px 16px;
   border: 0;
   border-radius: var(--radius);
   background: var(--accent);
@@ -159,6 +158,8 @@ button:disabled {
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  line-height: 1.25;
+  text-align: center;
 }
 
 .cta:hover {
@@ -166,13 +167,20 @@ button:disabled {
 }
 
 .task-list-title {
-  margin: 0 0 8px;
+  margin: 0 0 4px;
   color: var(--muted);
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+}
+
+.task-list-lead {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .task-list-items {
@@ -249,17 +257,11 @@ button:disabled {
   color: var(--danger);
 }
 
-.draft-mark {
-  width: 8px;
-  height: 8px;
+.task-row-arrow {
   flex: 0 0 auto;
-  border-radius: 2px;
-  background: var(--accent);
-}
-
-.draft-mark-empty {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--accent);
+  font-size: 18px;
+  line-height: 1;
 }
 
 .task-screen {
@@ -455,6 +457,13 @@ button:disabled {
   overflow: auto;
 }
 
+.editor-input::placeholder {
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
 .editor-input:focus,
 .editor-input:focus-visible {
   outline: none;
@@ -466,7 +475,6 @@ button:disabled {
   min-width: 0;
   flex-wrap: wrap;
   align-items: baseline;
-  justify-content: space-between;
   gap: 4px 8px;
   margin-bottom: 6px;
   padding: 6px 8px;
@@ -475,7 +483,6 @@ button:disabled {
   background: var(--surface);
 }
 
-.python-status-hint,
 .python-status .console-message {
   margin: 0;
   min-width: 0;

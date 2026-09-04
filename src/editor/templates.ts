@@ -7,8 +7,6 @@ export const TEMPLATES: Record<TemplateId, string> = {
   if: 'if |:',
   while: 'while |:',
   print: 'print(|)',
-  input: 'input(|)',
-  intInput: 'int(input(|))',
   range: 'range(|)',
 }
 

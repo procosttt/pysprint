@@ -22,7 +22,7 @@ export function RunControls({
     ? 'Повторить загрузку'
     : showLoading
       ? 'Загрузка Python…'
-      : 'Запустить'
+      : '▶ Запустить код'
   const runClass = loadError
     ? 'run-check-button run-check-button-retry'
     : showLoading

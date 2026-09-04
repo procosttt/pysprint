@@ -11,7 +11,7 @@ import {
 import { insertTemplate, TEMPLATES } from './templates.ts'
 import { TEMPLATE_IDS } from './types.ts'
 import type { EditorSnapshot, TemplateId } from './types.ts'
-import { KEYPAD_ACTIONS, KEYPAD_RIBBON } from './keypad.ts'
+import { KEYPAD_ACTIONS, KEYPAD_KEYS, KEYPAD_RIBBON } from './keypad.ts'
 import { editorHint } from './status.ts'
 
 function snap(value: string, start: number, end = start): EditorSnapshot {
@@ -66,10 +66,6 @@ describe('editor operations', () => {
     expect(insertTemplate(snap('', 0), 'if')).toEqual(snap('if :', 3))
     expect(insertTemplate(snap('', 0), 'while')).toEqual(snap('while :', 6))
     expect(insertTemplate(snap('', 0), 'print')).toEqual(snap('print()', 6))
-    expect(insertTemplate(snap('', 0), 'input')).toEqual(snap('input()', 6))
-    expect(insertTemplate(snap('', 0), 'intInput')).toEqual(
-      snap('int(input())', 'int(input('.length),
-    )
     expect(insertTemplate(snap('', 0), 'range')).toEqual(snap('range()', 6))
   })
 
@@ -124,22 +120,27 @@ describe('keypad layout data', () => {
       'redo',
     ])
     expect(KEYPAD_RIBBON.map((key) => key.label).slice(0, 8)).toEqual([
+      'print()',
       '(',
       ')',
-      ':',
-      '=',
       '[',
       ']',
+      ':',
+      '=',
       "'",
-      '"',
     ])
+  })
+
+  it('does not expose input() keypad keys', () => {
+    const labels = KEYPAD_KEYS.map((key) => key.label)
+    expect(labels).not.toContain('input()')
+    expect(labels).not.toContain('int(input())')
   })
 })
 
 describe('editor chrome copy', () => {
   it('explains how to start typing and how the draft is saved', () => {
-    expect(editorHint(false, false)).toBe('Нажмите, чтобы печатать')
-    expect(editorHint(true, false)).toBe('Редактирование')
-    expect(editorHint(false, true)).toBe('Черновик сохранён')
+    expect(editorHint(false)).toBe('Нажмите здесь и начните писать')
+    expect(editorHint(true)).toBe('Черновик сохранён')
   })
 })

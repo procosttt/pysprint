@@ -1,9 +1,6 @@
-export function editorHint(focused: boolean, hasDraft: boolean): string {
-  if (focused) {
-    return 'Редактирование'
-  }
+export function editorHint(hasDraft: boolean): string {
   if (hasDraft) {
     return 'Черновик сохранён'
   }
-  return 'Нажмите, чтобы печатать'
+  return 'Нажмите здесь и начните писать'
 }

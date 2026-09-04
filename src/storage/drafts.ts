@@ -1,4 +1,5 @@
-export const STORAGE_KEY = 'py-sprint.drafts.v1'
+export const LEGACY_STORAGE_KEY = 'py-sprint.drafts.v1'
+export const STORAGE_KEY = 'py-sprint.editor-drafts.v1'
 export const STORE_VERSION = 1 as const
 
 export type DraftRecord = {

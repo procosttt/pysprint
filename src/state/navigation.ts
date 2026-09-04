@@ -6,8 +6,9 @@ export function getContinueTaskId(
   store: DraftStoreV1,
 ): string {
   const ids = new Set(tasks.map((task) => task.id))
-  if (store.lastOpenedTaskId && ids.has(store.lastOpenedTaskId)) {
-    return store.lastOpenedTaskId
+  const lastOpened = store.lastOpenedTaskId
+  if (lastOpened && ids.has(lastOpened) && store.drafts[lastOpened]?.isUserDraft) {
+    return lastOpened
   }
 
   const withDraft = tasks.find((task) => store.drafts[task.id]?.isUserDraft)
@@ -19,8 +20,18 @@ export function getContinueTaskId(
 }
 
 export function hasSessionProgress(store: DraftStoreV1): boolean {
-  if (store.lastOpenedTaskId) {
-    return true
-  }
   return Object.values(store.drafts).some((draft) => draft.isUserDraft)
+}
+
+export function homeCtaLabel(tasks: readonly Task[], store: DraftStoreV1): string {
+  if (!hasSessionProgress(store)) {
+    return 'Начать первую задачу'
+  }
+
+  const taskId = getContinueTaskId(tasks, store)
+  const task = tasks.find((item) => item.id === taskId)
+  if (!task) {
+    return 'Начать первую задачу'
+  }
+  return `Продолжить: ${task.title}`
 }

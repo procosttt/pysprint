@@ -10,15 +10,7 @@ export type EditorHistory = {
   future: EditorSnapshot[]
 }
 
-export const TEMPLATE_IDS = [
-  'for',
-  'if',
-  'while',
-  'print',
-  'input',
-  'intInput',
-  'range',
-] as const
+export const TEMPLATE_IDS = ['for', 'if', 'while', 'print', 'range'] as const
 
 export type TemplateId = (typeof TEMPLATE_IDS)[number]
 
