@@ -1,8 +1,8 @@
 import type { RunnerState } from '../python/PythonRunner.ts'
 
 type ConsolePanelProps = {
-  stdin: string
-  onStdinChange: (value: string) => void
+  outputOpen: boolean
+  onToggleOutput: () => void
   state: RunnerState
   onGoToLine: (line: number) => void
 }
@@ -28,8 +28,9 @@ function statusLabel(state: RunnerState): string {
   }
 }
 
-export function ConsolePanel({ stdin, onStdinChange, state, onGoToLine }: ConsolePanelProps) {
+export function ConsolePanel({ outputOpen, onToggleOutput, state, onGoToLine }: ConsolePanelProps) {
   const result = state.result
+  const showOutput = result !== null || state.status === 'running'
   const stdout = result?.stdout ?? ''
   const traceback = result?.error?.traceback ?? ''
   const stderr = result?.stderr ?? ''
@@ -47,30 +48,33 @@ export function ConsolePanel({ stdin, onStdinChange, state, onGoToLine }: Consol
       ? state.message
       : null
 
-  return (
-    <section className="console-panel" aria-label="Консоль">
-      <div className="console-head">
-        <p className="console-title">КОНСОЛЬ</p>
+  if (!showOutput) {
+    return (
+      <section className="python-status" aria-label="Статус Python" aria-live="polite">
         <p className="console-status">{statusLabel(state)}</p>
-      </div>
+        {state.status === 'load-error' && state.message ? (
+          <p className="console-message">{state.message}</p>
+        ) : (
+          <p className="python-status-hint">Результат появится после запуска</p>
+        )}
+      </section>
+    )
+  }
 
-      <label className="console-block">
-        <span className="console-caption">ВВОД</span>
-        <textarea
-          className="console-stdin"
-          value={stdin}
-          placeholder="Данные для input(), каждая строка отдельно"
-          spellCheck={false}
-          autoCorrect="off"
-          autoCapitalize="off"
-          autoComplete="off"
-          aria-label="Данные для input(), каждая строка отдельно"
-          onChange={(event) => onStdinChange(event.target.value)}
-        />
-      </label>
+  return (
+    <section className="console-panel" aria-label="Вывод">
+      <button
+        type="button"
+        className="console-toggle"
+        aria-expanded={outputOpen}
+        onClick={onToggleOutput}
+      >
+        <span className="console-title">ВЫВОД</span>
+        <span className="console-status">{statusLabel(state)}</span>
+        <span className="prompt-toggle-action">{outputOpen ? 'Свернуть' : 'Открыть'}</span>
+      </button>
 
-      <div className="console-block">
-        <p className="console-caption">ВЫВОД</p>
+      {outputOpen ? (
         <div className="console-output" aria-live="polite">
           {state.loadingPython && state.status !== 'loading' ? (
             <p className="console-note">Python загружается…</p>
@@ -98,7 +102,7 @@ export function ConsolePanel({ stdin, onStdinChange, state, onGoToLine }: Consol
             </div>
           ) : null}
         </div>
-      </div>
+      ) : null}
     </section>
   )
 }

@@ -103,24 +103,6 @@ describe('PythonRunner', () => {
     runner.dispose()
   })
 
-  it('forwards exact user stdin including multiline text', () => {
-    const workers: FakeWorker[] = []
-    const runner = new PythonRunner({
-      createWorker: () => {
-        const worker = createFakeWorker()
-        workers.push(worker)
-        return worker.port
-      },
-    })
-    workers[0]!.emit({ type: 'ready', requestId: workers[0]!.posted[0]!.requestId })
-
-    const stdin = '5\n7'
-    expect(runner.run('a = int(input())\nb = int(input())\nprint(a + b)', stdin)).toBe(true)
-    expect(latestRun(workers[0]!).stdin).toBe('5\n7')
-    expect(latestRun(workers[0]!).stdin).toBe(stdin)
-    runner.dispose()
-  })
-
   it('returns stdout and stderr from a result', () => {
     const workers: FakeWorker[] = []
     const runner = new PythonRunner({

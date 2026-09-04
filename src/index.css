@@ -132,6 +132,7 @@ button:disabled {
 .cta,
 .back-button,
 .prompt-toggle,
+.console-toggle,
 .task-row,
 .keypad-key,
 .run-check-button {
@@ -371,54 +372,9 @@ button:disabled {
 }
 
 .prompt-text {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 13px;
   line-height: 1.4;
-}
-
-.examples {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.example-label {
-  margin: 0 0 2px;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.example-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-}
-
-.example-block {
-  margin: 0;
-  min-width: 0;
-  overflow-x: auto;
-  padding: 4px 6px;
-  border-radius: 8px;
-  background: var(--raised);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 11px;
-  line-height: 1.3;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.example-caption {
-  display: block;
-  margin-bottom: 2px;
-  color: var(--muted);
 }
 
 .editor-zone {
@@ -504,10 +460,37 @@ button:disabled {
   outline: none;
 }
 
+.python-status {
+  display: flex;
+  flex-shrink: 0;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 8px;
+  margin-bottom: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.python-status-hint,
+.python-status .console-message {
+  margin: 0;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.python-status .console-status {
+  flex: 0 0 auto;
+}
+
 .console-panel {
   display: flex;
   flex: 0 0 auto;
-  max-height: 188px;
   min-width: 0;
   flex-direction: column;
   margin-bottom: 6px;
@@ -517,13 +500,19 @@ button:disabled {
   background: var(--surface);
 }
 
-.console-head {
-  display: flex;
+.console-toggle {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   flex-shrink: 0;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
   gap: 8px;
-  padding: 4px 8px 2px;
+  width: 100%;
+  min-height: 40px;
+  padding: 4px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
 }
 
 .console-title {
@@ -536,59 +525,18 @@ button:disabled {
 
 .console-status {
   margin: 0;
+  min-width: 0;
+  overflow: hidden;
   color: var(--accent);
   font-size: 12px;
   font-weight: 600;
-}
-
-.console-block {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.console-caption {
-  margin: 0 8px 2px;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-}
-
-.console-stdin {
-  width: calc(100% - 16px);
-  height: 56px;
-  min-height: 48px;
-  max-height: 72px;
-  margin: 0 8px 6px;
-  padding: 6px 8px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--raised);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 16px;
-  line-height: 1.35;
-  resize: none;
-}
-
-.console-stdin::placeholder {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.3;
-}
-
-.console-stdin:focus,
-.console-stdin:focus-visible {
-  border-color: var(--accent);
-  outline: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .console-output {
-  min-height: 36px;
-  max-height: 64px;
+  min-height: 0;
+  max-height: 120px;
   margin: 0 8px 6px;
   overflow: auto;
 }

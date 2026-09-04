@@ -3,7 +3,6 @@ import { applyHistory } from '../editor/apply.ts'
 import { canRedo, canUndo, commitChange, createHistory } from '../editor/history.ts'
 import type { HistoryOp } from '../editor/types.ts'
 import { offsetAtLine } from '../python/errors.ts'
-import { createFreeRunRequest } from '../python/freeRun.ts'
 import type { PythonRunner, RunnerState } from '../python/PythonRunner.ts'
 import {
   getBrowserStorage,
@@ -82,7 +81,7 @@ export function TaskScreen({
   )
   const lastSavedCode = useRef(history.present.value)
   const [promptOpen, setPromptOpen] = useState(true)
-  const [consoleStdin, setConsoleStdin] = useState('')
+  const [outputOpen, setOutputOpen] = useState(true)
 
   useEffect(() => {
     const storage = getBrowserStorage()
@@ -118,8 +117,8 @@ export function TaskScreen({
 
   function handleRun() {
     setPromptOpen(false)
-    const request = createFreeRunRequest(history.present.value, consoleStdin)
-    python.runner?.run(request.code, request.stdin)
+    setOutputOpen(true)
+    python.runner?.run(history.present.value, '')
   }
 
   function handleGoToLine(line: number) {
@@ -188,23 +187,6 @@ export function TaskScreen({
         {promptOpen ? (
           <div className="prompt-body">
             <p className="prompt-text">{task.statement}</p>
-            <ul className="examples">
-              {task.examples.map((example, index) => (
-                <li key={example.input} className="example">
-                  <p className="example-label">Пример {index + 1}</p>
-                  <div className="example-grid">
-                    <pre className="example-block">
-                      <span className="example-caption">Ввод</span>
-                      {example.input}
-                    </pre>
-                    <pre className="example-block">
-                      <span className="example-caption">Вывод</span>
-                      {example.output}
-                    </pre>
-                  </div>
-                </li>
-              ))}
-            </ul>
           </div>
         ) : null}
       </section>
@@ -243,8 +225,8 @@ export function TaskScreen({
       </div>
 
       <ConsolePanel
-        stdin={consoleStdin}
-        onStdinChange={setConsoleStdin}
+        outputOpen={outputOpen}
+        onToggleOutput={() => setOutputOpen((open) => !open)}
         state={python.state}
         onGoToLine={handleGoToLine}
       />
