@@ -1,5 +1,6 @@
 import { useLayoutEffect, useState, type KeyboardEvent, type RefObject } from 'react'
 import { editorHint } from '../editor/status.ts'
+import { CODE_MAX_LENGTH } from '../python/protocol.ts'
 import type { EditorSnapshot, HistoryOp } from '../editor/types.ts'
 
 type CodeEditorProps = {
@@ -76,6 +77,7 @@ export function CodeEditor({
         className="editor-input"
         value={snapshot.value}
         placeholder="Напишите Python-код здесь…"
+        maxLength={CODE_MAX_LENGTH}
         spellCheck={false}
         autoCorrect="off"
         autoCapitalize="off"

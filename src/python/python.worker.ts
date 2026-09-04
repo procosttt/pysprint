@@ -1,5 +1,6 @@
 import { loadPyodide, type PyodideInterface } from 'pyodide'
 import { enrichPythonError, normalizePythonError, preferPythonTraceback } from './errors.ts'
+import { OUTPUT_LIMIT, OUTPUT_LIMIT_MESSAGE, OUTPUT_LIMIT_TOKEN } from './outputLimit.ts'
 import { PYODIDE_INDEX_URL, USER_CODE_FILENAME } from './protocol.ts'
 import type { NormalizedError, WorkerRequest, WorkerResponse } from './protocol.ts'
 
@@ -28,11 +29,52 @@ type SysModule = Destroyable & {
 
 type DictCtor = ((entries?: unknown) => PyDict) & Destroyable
 
+type LimitedWriter = Destroyable & {
+  overflowed: boolean
+  getvalue: () => unknown
+}
+
+type WriterCtor = ((limit: number) => LimitedWriter) & Destroyable
+
 type RuntimeHandles = {
   sys: SysModule
   io: IoModule
   dictCtor: DictCtor
+  writerCtor: WriterCtor
 }
+
+const LIMITED_WRITER_PY = `
+class LimitedWriter:
+    def __init__(self, limit):
+        self._parts = []
+        self._n = 0
+        self.limit = int(limit)
+        self.overflowed = False
+        self.encoding = "utf-8"
+        self.errors = "strict"
+        self.newlines = None
+        self.name = "<limited>"
+    def write(self, data):
+        text = data if isinstance(data, str) else str(data)
+        if self.overflowed:
+            return len(text)
+        room = self.limit - self._n
+        if len(text) > room:
+            if room > 0:
+                self._parts.append(text[:room])
+                self._n = self.limit
+            self.overflowed = True
+            raise RuntimeError("${OUTPUT_LIMIT_TOKEN}")
+        self._parts.append(text)
+        self._n += len(text)
+        return len(text)
+    def flush(self):
+        return None
+    def getvalue(self):
+        return "".join(self._parts)
+    def writable(self):
+        return True
+`
 
 let pyodidePromise: Promise<PyodideInterface> | null = null
 let runtime: RuntimeHandles | null = null
@@ -72,6 +114,9 @@ function ensurePyodide(): Promise<PyodideInterface> {
   if (!pyodidePromise) {
     pyodidePromise = loadPyodide({
       indexURL: PYODIDE_INDEX_URL,
+    }).then((pyodide) => {
+      pyodide.runPython(LIMITED_WRITER_PY)
+      return pyodide
     })
   }
   return pyodidePromise
@@ -83,6 +128,7 @@ function getRuntime(pyodide: PyodideInterface): RuntimeHandles {
       sys: pyodide.pyimport('sys') as SysModule,
       io: pyodide.pyimport('io') as IoModule,
       dictCtor: pyodide.globals.get('dict') as DictCtor,
+      writerCtor: pyodide.globals.get('LimitedWriter') as WriterCtor,
     }
   }
   return runtime
@@ -141,13 +187,13 @@ async function executeUserCode(
   ok: boolean
   error: NormalizedError | null
 }> {
-  const { sys, io, dictCtor } = getRuntime(pyodide)
+  const { sys, io, dictCtor, writerCtor } = getRuntime(pyodide)
   const namespace = dictCtor()
   namespace.set('__name__', '__main__')
 
   const stdinBuf = io.StringIO(stdin)
-  const stdoutBuf = io.StringIO()
-  const stderrBuf = io.StringIO()
+  const stdoutBuf = writerCtor(OUTPUT_LIMIT)
+  const stderrBuf = writerCtor(OUTPUT_LIMIT)
 
   const previousStdin = sys.stdin
   const previousStdout = sys.stdout
@@ -179,9 +225,20 @@ async function executeUserCode(
     }
   }
 
+  const overflowed = Boolean(stdoutBuf.overflowed) || Boolean(stderrBuf.overflowed)
   const stdout = asString(stdoutBuf.getvalue())
   let stderr = preferPythonTraceback(asString(stderrBuf.getvalue()))
-  if (!ok && error) {
+
+  if (overflowed || error?.message.includes(OUTPUT_LIMIT_TOKEN)) {
+    ok = false
+    error = {
+      name: 'OutputLimitError',
+      message: OUTPUT_LIMIT_MESSAGE,
+      traceback: '',
+      line: null,
+    }
+    stderr = ''
+  } else if (!ok && error) {
     error = enrichPythonError(error, stderr)
     if (!stderr.includes(error.traceback)) {
       stderr = stderr ? `${stderr}\n${error.traceback}` : error.traceback

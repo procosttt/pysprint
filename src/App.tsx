@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { HomeScreen } from './components/HomeScreen.tsx'
 import { TaskScreen } from './components/TaskScreen.tsx'
-import { getTaskById, TASKS } from './data/tasks.ts'
+import { getTaskById, getNextTaskId, TASKS } from './data/tasks.ts'
 import { getBrowserStorage, loadStore } from './storage/drafts.ts'
 import type { DraftStoreV1 } from './storage/drafts.ts'
 import { usePythonRunner } from './python/usePythonRunner.ts'
@@ -27,6 +27,15 @@ export default function App() {
     setView({ name: 'home' })
   }
 
+  function openNext(fromTaskId: string) {
+    const nextId = getNextTaskId(fromTaskId)
+    if (!nextId) {
+      backHome()
+      return
+    }
+    openTask(nextId)
+  }
+
   if (view.name === 'task') {
     const task = getTaskById(view.taskId)
     if (!task) {
@@ -40,6 +49,7 @@ export default function App() {
         taskNumber={TASKS.findIndex((item) => item.id === task.id) + 1}
         taskCount={TASKS.length}
         onBack={backHome}
+        onContinue={() => openNext(task.id)}
         python={python}
       />
     )

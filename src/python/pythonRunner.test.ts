@@ -311,6 +311,56 @@ describe('PythonRunner', () => {
     runner.dispose()
   })
 
+  it('can run a normal print after an output-limit error without growing forever', () => {
+    const workers: FakeWorker[] = []
+    const runner = new PythonRunner({
+      createWorker: () => {
+        const worker = createFakeWorker()
+        workers.push(worker)
+        return worker.port
+      },
+    })
+    workers[0]!.emit({ type: 'ready', requestId: workers[0]!.posted[0]!.requestId })
+    runner.run('while True:\n    print(1)', '')
+    const first = latestRun(workers[0]!)
+    workers[0]!.emit({
+      type: 'result',
+      requestId: first.requestId,
+      stdout: '1\n'.repeat(100),
+      stderr: '',
+      ok: false,
+      error: {
+        name: 'OutputLimitError',
+        message: 'Слишком много вывода. Выполнение остановлено.',
+        traceback: '',
+        line: null,
+      },
+      line: null,
+      durationMs: 12,
+    })
+    expect(runner.getState().status).toBe('python-error')
+    expect(runner.getState().result?.error?.message).toBe(
+      'Слишком много вывода. Выполнение остановлено.',
+    )
+
+    expect(runner.run('print(2 + 2)', '')).toBe(true)
+    const second = latestRun(workers[0]!)
+    workers[0]!.emit({
+      type: 'result',
+      requestId: second.requestId,
+      stdout: '4\n',
+      stderr: '',
+      ok: true,
+      error: null,
+      line: null,
+      durationMs: 2,
+    })
+    expect(runner.getState().status).toBe('success')
+    expect(runner.getState().result?.stdout).toBe('4\n')
+    expect(workers[0]!.terminated).toBe(false)
+    runner.dispose()
+  })
+
   it('clears the timeout after a normal result', () => {
     const workers: FakeWorker[] = []
     const runner = new PythonRunner({

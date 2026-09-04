@@ -1,6 +1,7 @@
 export const PYODIDE_INDEX_URL = 'https://cdn.jsdelivr.net/pyodide/v314.0.6/full/'
 export const USER_CODE_FILENAME = '<user_code>'
 export const RUN_TIMEOUT_MS = 3000
+export { CODE_MAX_LENGTH, OUTPUT_LIMIT, OUTPUT_LIMIT_MESSAGE } from './outputLimit.ts'
 
 export type WorkerRequest =
   | {

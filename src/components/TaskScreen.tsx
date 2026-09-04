@@ -11,8 +11,8 @@ import {
   persistStore,
   saveDraftCode,
 } from '../storage/drafts.ts'
-import { DIFFICULTY_LABEL } from '../types/task.ts'
-import type { Task } from '../types/task.ts'
+import { DIFFICULTY_LABEL, prototypeScreenLabel } from '../types/task.ts'
+import type { Task, TruthTableFragment } from '../types/task.ts'
 import { CodeEditor } from './CodeEditor.tsx'
 import { ConsolePanel } from './ConsolePanel.tsx'
 import { PythonKeypad } from './PythonKeypad.tsx'
@@ -23,6 +23,7 @@ type TaskScreenProps = {
   taskNumber: number
   taskCount: number
   onBack: () => void
+  onContinue: () => void
   python: {
     runner: PythonRunner | null
     state: RunnerState
@@ -57,6 +58,41 @@ function useVisualViewportHeight() {
   }, [])
 }
 
+function TruthTable({ table }: { table: TruthTableFragment }) {
+  return (
+    <div className="truth-wrap">
+      <table className="truth-table">
+        <caption className="truth-caption">Фрагмент таблицы истинности</caption>
+        <thead>
+          <tr>
+            <th scope="col">
+              <span className="visually-hidden">Столбец 1</span>
+            </th>
+            <th scope="col">
+              <span className="visually-hidden">Столбец 2</span>
+            </th>
+            <th scope="col">
+              <span className="visually-hidden">Столбец 3</span>
+            </th>
+            <th scope="col">
+              <span className="visually-hidden">Столбец 4</span>
+            </th>
+            <th scope="col">F</th>
+          </tr>
+        </thead>
+        <tbody>
+          {table.rows.map((row, rowIndex) => (
+            <tr key={rowIndex}>
+              {row.map((cell, cellIndex) => (
+                <td key={cellIndex}>{cell === null ? '' : cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 function scrollTextareaToLine(element: HTMLTextAreaElement, lineNumber: number) {
   const style = window.getComputedStyle(element)
   const fontSize = Number.parseFloat(style.fontSize) || 16
@@ -72,6 +108,7 @@ export function TaskScreen({
   taskNumber,
   taskCount,
   onBack,
+  onContinue,
   python,
 }: TaskScreenProps) {
   useVisualViewportHeight()
@@ -109,6 +146,11 @@ export function TaskScreen({
     )
     persistStore(storage, next)
   }, [history.present.value, task.id, task.starterCode])
+
+  function handleGoToCode() {
+    setPromptOpen(false)
+    textareaRef.current?.focus()
+  }
 
   function handleOp(op: HistoryOp) {
     setHistory((current) => applyHistory(current, op))
@@ -181,13 +223,27 @@ export function TaskScreen({
         >
           <span>Условие</span>
           <span className="prompt-toggle-action">
-            {promptOpen ? 'Свернуть' : 'Открыть'}
+            {promptOpen ? 'Свернуть' : 'Открыть условие'}
           </span>
         </button>
         {promptOpen ? (
-          <div className="prompt-body">
-            <p className="prompt-text">{task.statement}</p>
-          </div>
+          <>
+            <div className="prompt-body">
+              {task.prototypeNumber ? (
+                <p className="prototype-caption">{prototypeScreenLabel(task.prototypeNumber)}</p>
+              ) : null}
+              <p className="prompt-text">{task.statement}</p>
+              {task.truthTable ? <TruthTable table={task.truthTable} /> : null}
+              {task.prototypeNumber ? (
+                <p className="prototype-disclaimer">
+                  Авторская задача по формату ЕГЭ. Не является официальным заданием ФИПИ.
+                </p>
+              ) : null}
+            </div>
+            <button type="button" className="go-to-code" onClick={handleGoToCode}>
+              Перейти к коду
+            </button>
+          </>
         ) : null}
       </section>
 
@@ -230,6 +286,12 @@ export function TaskScreen({
         state={python.state}
         onGoToLine={handleGoToLine}
       />
+
+      {python.state.result && python.state.status !== 'running' ? (
+        <button type="button" className="next-task" onClick={onContinue}>
+          {taskNumber === taskCount ? 'К списку задач' : 'Следующая задача →'}
+        </button>
+      ) : null}
 
       <footer className="task-dock">
         <PythonKeypad

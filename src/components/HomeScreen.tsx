@@ -1,4 +1,4 @@
-import { DIFFICULTY_LABEL } from '../types/task.ts'
+import { DIFFICULTY_LABEL, prototypeCardLabel } from '../types/task.ts'
 import type { DraftStoreV1 } from '../storage/drafts.ts'
 import type { Task } from '../types/task.ts'
 import { TASKS } from '../data/tasks.ts'
@@ -20,6 +20,10 @@ export function HomeScreen({ store, onOpenTask }: HomeScreenProps) {
         <h1 className="home-title">PySprint</h1>
         <p className="home-lead">
           Выберите задачу, напишите Python-код и нажмите «Запустить код».
+        </p>
+        <p className="home-note">
+          Текстовый Python: вычисления, циклы и print(). Графические окна и графики пока не
+          поддерживаются.
         </p>
         <button
           type="button"
@@ -73,6 +77,9 @@ function TaskRow({
           <span className={`difficulty difficulty-${task.difficulty}`}>
             {DIFFICULTY_LABEL[task.difficulty]}
           </span>
+          {task.prototypeNumber ? (
+            <span className="prototype-tag">{prototypeCardLabel(task.prototypeNumber)}</span>
+          ) : null}
           <span className="task-row-status">{status}</span>
         </span>
       </span>
